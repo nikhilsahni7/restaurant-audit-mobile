@@ -11,14 +11,18 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "buildType": "apk",
+      "enableProguardInReleaseBuilds": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+
       "package": "com.nikhilsahni.restaurantauditapp"
     },
     "web": {

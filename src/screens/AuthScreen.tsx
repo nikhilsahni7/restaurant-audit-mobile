@@ -1,7 +1,14 @@
+// src/screens/AuthScreen.tsx
 import React, { useState } from "react";
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
-import { Button, Input } from "react-native-elements";
-import { Title } from "react-native-paper";
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+import { Button, Input, Text, useTheme } from "@rneui/themed";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { StackNavigationProp } from "@react-navigation/stack";
 
@@ -10,6 +17,7 @@ type AuthScreenProps = {
 };
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
+  const { theme } = useTheme();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,55 +32,73 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <Title style={styles.title}>{isSignUp ? "Sign Up" : "Sign In"}</Title>
-      {isSignUp && (
-        <>
-          <Input
-            placeholder="Name"
-            leftIcon={<Icon name="account" size={24} color="gray" />}
-            onChangeText={setName}
-            value={name}
-          />
-          <Input
-            placeholder="Phone"
-            leftIcon={<Icon name="phone" size={24} color="gray" />}
-            onChangeText={setPhone}
-            value={phone}
-            keyboardType="phone-pad"
-          />
-        </>
-      )}
-      <Input
-        placeholder="Email"
-        leftIcon={<Icon name="email" size={24} color="gray" />}
-        onChangeText={setEmail}
-        value={email}
-        keyboardType="email-address"
-      />
-      <Input
-        placeholder="Password"
-        leftIcon={<Icon name="lock" size={24} color="gray" />}
-        onChangeText={setPassword}
-        value={password}
-        secureTextEntry
-      />
-      <Button
-        title={isSignUp ? "Sign Up" : "Sign In"}
-        onPress={handleSubmit}
-        containerStyle={styles.buttonContainer}
-        raised
-      />
-      <Button
-        title={
-          isSignUp
-            ? "Already have an account? Sign In"
-            : "Don't have an account? Sign Up"
-        }
-        type="clear"
-        onPress={() => setIsSignUp(!isSignUp)}
-      />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text h1 style={[styles.title, { color: theme.colors.primary }]}>
+          {isSignUp ? "Sign Up" : "Sign In"}
+        </Text>
+        {isSignUp && (
+          <>
+            <Input
+              placeholder="Name"
+              leftIcon={
+                <Icon name="account" size={24} color={theme.colors.primary} />
+              }
+              onChangeText={setName}
+              value={name}
+              inputStyle={styles.input}
+            />
+            <Input
+              placeholder="Phone"
+              leftIcon={
+                <Icon name="phone" size={24} color={theme.colors.primary} />
+              }
+              onChangeText={setPhone}
+              value={phone}
+              keyboardType="phone-pad"
+              inputStyle={styles.input}
+            />
+          </>
+        )}
+        <Input
+          placeholder="Email"
+          leftIcon={
+            <Icon name="email" size={24} color={theme.colors.primary} />
+          }
+          onChangeText={setEmail}
+          value={email}
+          keyboardType="email-address"
+          inputStyle={styles.input}
+        />
+        <Input
+          placeholder="Password"
+          leftIcon={<Icon name="lock" size={24} color={theme.colors.primary} />}
+          onChangeText={setPassword}
+          value={password}
+          secureTextEntry
+          inputStyle={styles.input}
+        />
+        <Button
+          title={isSignUp ? "Sign Up" : "Sign In"}
+          onPress={handleSubmit}
+          containerStyle={styles.buttonContainer}
+          buttonStyle={{ backgroundColor: theme.colors.primary }}
+        />
+        <TouchableOpacity
+          onPress={() => setIsSignUp(!isSignUp)}
+          style={styles.switchAuthMode}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[styles.switchAuthText, { color: theme.colors.primary }]}
+          >
+            {isSignUp
+              ? "Already have an account? Sign In"
+              : "Don't have an account? Sign Up"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -80,17 +106,29 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     padding: 16,
-    backgroundColor: "#fff",
   },
   title: {
-    fontSize: 28,
     marginBottom: 24,
     textAlign: "center",
   },
+  input: {
+    paddingHorizontal: 10,
+  },
   buttonContainer: {
     marginVertical: 16,
+    borderRadius: 8,
+  },
+  switchAuthMode: {
+    padding: 10,
+  },
+  switchAuthText: {
+    textAlign: "center",
+    fontSize: 16,
   },
 });
 

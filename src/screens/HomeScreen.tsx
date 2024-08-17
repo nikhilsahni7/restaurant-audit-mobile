@@ -1,28 +1,40 @@
 import React from "react";
-import { View, StyleSheet, FlatList } from "react-native";
-import { FAB } from "react-native-paper";
+import { View, StyleSheet, FlatList, SafeAreaView } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import FormCard from "../components/FormCard";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
-const dummyForms = [
-  {
-    id: "1",
-    title: "Kitchen Cleanliness",
-    description: "Check kitchen hygiene standards",
-  },
-  {
-    id: "2",
-    title: "Food Safety",
-    description: "Ensure food safety protocols are followed",
-  },
-  {
-    id: "3",
-    title: "Customer Service",
-    description: "Evaluate staff performance and customer satisfaction",
-  },
-];
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Main">;
 
-const HomeScreen = ({ navigation }: any) => {
-  const renderFormItem = ({ item }: any) => (
+const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+
+  const forms = [
+    {
+      id: "1",
+      title: "Kitchen Cleanliness",
+      description: "Weekly kitchen audit",
+    },
+    { id: "2", title: "Food Safety", description: "Daily food safety check" },
+    {
+      id: "3",
+      title: "Customer Service",
+      description: "Monthly customer service review",
+    },
+    {
+      id: "4",
+      title: "Equipment Maintenance",
+      description: "Quarterly equipment check",
+    },
+    {
+      id: "5",
+      title: "Staff Performance",
+      description: "Bi-weekly staff evaluation",
+    },
+  ];
+
+  const renderItem = ({ item }: { item: (typeof forms)[0] }) => (
     <FormCard
       title={item.title}
       description={item.description}
@@ -31,37 +43,24 @@ const HomeScreen = ({ navigation }: any) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
-        data={dummyForms}
-        renderItem={renderFormItem}
+        data={forms}
+        renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.listContainer}
       />
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={() => {
-          /* Handle creating a new form */
-        }}
-      />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f5f5f5",
   },
-  listContent: {
+  listContainer: {
     padding: 16,
-  },
-  fab: {
-    position: "absolute",
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 });
 

@@ -13,7 +13,7 @@ const dummyFormData: FormData = {
       id: "2",
       type: "mcq",
       question: "Is the refrigerator temperature correct?",
-      options: ["Yes", "No", "N/A"],
+      options: ["Yes", "No", "N/A", "N/I"],
     },
     { id: "3", type: "text", question: "Any additional comments?" },
   ],

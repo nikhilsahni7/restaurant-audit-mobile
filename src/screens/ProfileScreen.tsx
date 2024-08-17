@@ -1,9 +1,12 @@
+// src/screens/ProfileScreen.tsx
 import React from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import { Avatar, ListItem } from "react-native-elements";
-import { Title } from "react-native-paper";
+import { Avatar, ListItem, Text, Button, useTheme } from "@rneui/themed";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 const ProfileScreen = () => {
+  const { theme } = useTheme();
+
   const userInfo = {
     name: "Nikhil Sahni",
     email: "nikhil.sahni321@gmail.com",
@@ -13,32 +16,63 @@ const ProfileScreen = () => {
     loginCount: 42,
   };
 
+  const infoItems = [
+    { key: "email", icon: "email", label: "Email" },
+    { key: "phone", icon: "phone", label: "Phone" },
+    { key: "memberSince", icon: "calendar", label: "Member Since" },
+    { key: "lastLogin", icon: "clock", label: "Last Login" },
+    { key: "loginCount", icon: "counter", label: "Login Count" },
+  ];
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.header}>
         <Avatar
           rounded
-          size="large"
+          size="xlarge"
           source={{
             uri: "https://avatars.githubusercontent.com/u/100983397?v=4",
           }}
+          containerStyle={styles.avatar}
         />
-        <Title style={styles.name}>{userInfo.name}</Title>
+        <Text h3 style={styles.name}>
+          {userInfo.name}
+        </Text>
       </View>
+
       <View style={styles.infoContainer}>
-        {Object.entries(userInfo).map(([key, value]) => (
+        {infoItems.map(({ key, icon, label }) => (
           <ListItem key={key} bottomDivider>
+            <Icon name={icon} size={24} color={theme.colors.primary} />
             <ListItem.Content>
-              <ListItem.Title>
-                {key
-                  .replace(/([A-Z])/g, " $1")
-                  .replace(/^./, (str) => str.toUpperCase())}
+              <ListItem.Title
+                style={{ color: theme.colors.grey1, fontWeight: "bold" }}
+              >
+                {label}
               </ListItem.Title>
-              <ListItem.Subtitle>{value}</ListItem.Subtitle>
+              <ListItem.Subtitle style={{ color: theme.colors.grey3 }}>
+                {userInfo[key as keyof typeof userInfo]}
+              </ListItem.Subtitle>
             </ListItem.Content>
           </ListItem>
         ))}
       </View>
+
+      <Button
+        title="Edit Profile"
+        icon={
+          <Icon
+            name="account-edit"
+            size={20}
+            color="white"
+            style={{ marginRight: 10 }}
+          />
+        }
+        containerStyle={styles.buttonContainer}
+        buttonStyle={{ backgroundColor: theme.colors.primary }}
+      />
     </ScrollView>
   );
 };
@@ -46,20 +80,24 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
   },
   header: {
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#fff",
+  },
+  avatar: {
+    marginBottom: 15,
   },
   name: {
-    fontSize: 24,
-    marginTop: 10,
+    marginBottom: 20,
   },
   infoContainer: {
-    backgroundColor: "#fff",
-    marginTop: 20,
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  buttonContainer: {
+    margin: 20,
   },
 });
 
