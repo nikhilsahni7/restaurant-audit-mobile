@@ -3,7 +3,6 @@ import { View, StyleSheet, FlatList } from "react-native";
 import { ListItem, Text, useTheme } from "@rneui/themed";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import CustomHeader from "../components/CustomHeader";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 type HistoryScreenNavigationProp = StackNavigationProp<
@@ -21,31 +20,36 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const historyData = [
     {
       id: "1",
-      formName: "Kitchen Cleanliness",
+      restaurantName: "Restaurant A",
       date: "2024-08-15",
       version: 1,
     },
-    { id: "2", formName: "Food Safety", date: "2024-08-14", version: 2 },
-    { id: "3", formName: "Customer Service", date: "2024-08-13", version: 1 },
+    { id: "2", restaurantName: "Restaurant B", date: "2024-08-14", version: 2 },
+    { id: "3", restaurantName: "Restaurant C", date: "2024-08-13", version: 1 },
     {
       id: "4",
-      formName: "Equipment Maintenance",
+      restaurantName: "Restaurant D",
       date: "2024-08-12",
       version: 3,
     },
-    { id: "5", formName: "Staff Performance", date: "2024-08-11", version: 1 },
+    {
+      id: "5",
+      restaurantName: "Restaurant E",
+      date: "2024-08-11",
+      version: 1,
+    },
   ];
 
   const renderHistoryItem = ({ item }: { item: (typeof historyData)[0] }) => (
     <ListItem
       bottomDivider
-      onPress={() => navigation.navigate("Form", { formId: item.id })}
+      onPress={() => navigation.navigate("Form", { restaurantId: item.id })}
       containerStyle={styles.listItemContainer}
     >
-      <Icon name="clipboard-text" size={24} color={theme.colors.primary} />
+      <Icon name="store" size={24} color={theme.colors.primary} />
       <ListItem.Content>
         <ListItem.Title style={{ color: theme.colors.black }}>
-          {item.formName}
+          {item.restaurantName}
         </ListItem.Title>
         <ListItem.Subtitle style={{ color: theme.colors.grey3 }}>
           Date: {item.date}

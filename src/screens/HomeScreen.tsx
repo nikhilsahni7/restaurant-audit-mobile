@@ -1,55 +1,65 @@
-import React from "react";
-import { View, StyleSheet, FlatList, SafeAreaView } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Animated,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import FormCard from "../components/FormCard";
+import { Text } from "@rneui/themed";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Main">;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const taskCount = 5;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
 
-  const forms = [
-    {
-      id: "1",
-      title: "Kitchen Cleanliness",
-      description: "Weekly kitchen audit",
-    },
-    { id: "2", title: "Food Safety", description: "Daily food safety check" },
-    {
-      id: "3",
-      title: "Customer Service",
-      description: "Monthly customer service review",
-    },
-    {
-      id: "4",
-      title: "Equipment Maintenance",
-      description: "Quarterly equipment check",
-    },
-    {
-      id: "5",
-      title: "Staff Performance",
-      description: "Bi-weekly staff evaluation",
-    },
-  ];
-
-  const renderItem = ({ item }: { item: (typeof forms)[0] }) => (
-    <FormCard
-      title={item.title}
-      description={item.description}
-      onPress={() => navigation.navigate("Form", { formId: item.id })}
-    />
-  );
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList
-        data={forms}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-      />
+      <Animated.View
+        style={[
+          styles.taskContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <Icon
+          name="clipboard-list"
+          size={48}
+          color="#007AFF"
+          style={styles.icon}
+        />
+        <Text style={styles.taskText}>{taskCount} tasks assigned</Text>
+      </Animated.View>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => navigation.navigate("RestaurantList")}
+      >
+        <Icon name="plus" size={24} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -58,9 +68,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-  },
-  listContainer: {
     padding: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  taskContainer: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    alignItems: "center",
+  },
+  icon: {
+    marginBottom: 16,
+  },
+  taskText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#333",
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  addButton: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    backgroundColor: "#007AFF",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });
 

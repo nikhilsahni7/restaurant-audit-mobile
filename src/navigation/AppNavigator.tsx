@@ -8,13 +8,15 @@ import FormScreen from "../screens/FormScreen";
 import ThankYouScreen from "../screens/ThankYouScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import HistoryScreen from "../screens/HistoryScreen";
+import RestaurantListScreen from "../screens/RestaurantListScreen";
 import CustomHeader from "../components/CustomHeader";
 import { useTheme } from "@rneui/themed";
 
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
-  Form: { formId: string };
+  RestaurantList: undefined;
+  Form: { restaurantId: string };
   ThankYou: undefined;
 };
 
@@ -98,6 +100,15 @@ const AppNavigator: React.FC = () => (
       name="Main"
       component={MainTabs}
       options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="RestaurantList"
+      component={RestaurantListScreen}
+      options={{
+        header: (props) => (
+          <CustomHeader {...props} title="Restaurant List" showBackButton />
+        ),
+      }}
     />
     <Stack.Screen
       name="Form"
