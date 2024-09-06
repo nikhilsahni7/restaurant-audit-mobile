@@ -2,22 +2,20 @@ import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@rneui/themed";
 import AuthScreen from "../screens/AuthScreen";
 import HomeScreen from "../screens/HomeScreen";
-import FormScreen from "../screens/FormScreen";
+import { AuditForm } from "../screens/FormScreen";
 import ThankYouScreen from "../screens/ThankYouScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import HistoryScreen from "../screens/HistoryScreen";
-import RestaurantListScreen from "../screens/RestaurantListScreen";
 import CustomHeader from "../components/CustomHeader";
-import { useTheme } from "@rneui/themed";
 
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
-  RestaurantList: undefined;
-  Form: { restaurantId: string };
-  ThankYou: undefined;
+  AuditForm: undefined; // Changed from Form to AuditForm
+  ThankYou: { pdfPath: string }; // Add pdfPath parameter
 };
 
 export type MainTabParamList = {
@@ -31,7 +29,6 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabs: React.FC = () => {
   const { theme } = useTheme();
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -102,20 +99,11 @@ const AppNavigator: React.FC = () => (
       options={{ headerShown: false }}
     />
     <Stack.Screen
-      name="RestaurantList"
-      component={RestaurantListScreen}
+      name="AuditForm"
+      component={AuditForm}
       options={{
         header: (props) => (
-          <CustomHeader {...props} title="Restaurant List" showBackButton />
-        ),
-      }}
-    />
-    <Stack.Screen
-      name="Form"
-      component={FormScreen}
-      options={{
-        header: (props) => (
-          <CustomHeader {...props} title="Form" showBackButton />
+          <CustomHeader {...props} title="Audit Form" showBackButton />
         ),
       }}
     />

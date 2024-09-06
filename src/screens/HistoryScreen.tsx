@@ -48,7 +48,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
     >
       <Icon name="store" size={24} color={theme.colors.primary} />
       <ListItem.Content>
-        <ListItem.Title style={{ color: theme.colors.black }}>
+        <ListItem.Title style={{ color: theme.colors.secondary }}>
           {item.restaurantName}
         </ListItem.Title>
         <ListItem.Subtitle style={{ color: theme.colors.grey3 }}>

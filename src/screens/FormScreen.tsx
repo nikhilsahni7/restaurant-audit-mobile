@@ -1,203 +1,408 @@
-import React, { useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  Animated,
+  ActivityIndicator,
+  FlatList,
+  Alert,
 } from "react-native";
-import { Text, Input, Button } from "@rneui/themed";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { Input, Button, Text, useTheme } from "@rneui/themed";
+import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import useForm from "../hooks/useForm";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-type FormScreenRouteProp = RouteProp<RootStackParamList, "Form">;
-type FormScreenNavigationProp = StackNavigationProp<RootStackParamList, "Form">;
+type AuditFormScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "ThankYou"
+>;
 
-const FormScreen: React.FC = () => {
-  const route = useRoute<FormScreenRouteProp>();
-  const navigation = useNavigation<FormScreenNavigationProp>();
-  const { restaurantId } = route.params;
-  const { formData, answers, setAnswers, handleSubmit } = useForm(restaurantId);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+interface AuditFormData {
+  nameOfCompany: string;
+  fssaiLicenseNo: string;
+  companyRepresentatives: string[];
+  siteAddress: string;
+  state: string;
+  pinCode: string;
+  phoneNo: string;
+  email: string;
+  website: string;
+  auditTeam: string[];
+  dateOfAudit: string;
+  auditType: string;
+  auditCriteria: string;
+  typeOfAudit: string;
+  scope: string;
+  manpower: {
+    male: number;
+    female: number;
+  };
+}
+
+interface Question {
+  id: string;
+  question: string;
+  compliance: "Y" | "N" | "NI" | "N/A";
+  evidenceAndComments: string;
+  image: string;
+  key?: string;
+}
+
+const useAuditForm = () => {
+  const [formData, setFormData] = useState<AuditFormData>({
+    nameOfCompany: "",
+    fssaiLicenseNo: "",
+    companyRepresentatives: ["", ""],
+    siteAddress: "",
+    state: "",
+    pinCode: "",
+    phoneNo: "",
+    email: "",
+    website: "",
+    auditTeam: ["", ""],
+    dateOfAudit: new Date().toISOString(),
+    auditType: "",
+    auditCriteria: "",
+    typeOfAudit: "",
+    scope: "",
+    manpower: {
+      male: 0,
+      female: 0,
+    },
+  });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
+    fetchQuestions();
   }, []);
 
-  const renderQuestion = (question: any) => {
-    switch (question.type) {
-      case "text":
-        return (
-          <Input
-            placeholder="Enter your answer"
-            value={answers[question.id] || ""}
-            onChangeText={(text) =>
-              setAnswers({ ...answers, [question.id]: text })
-            }
-            leftIcon={<Icon name="pencil" size={24} color="#007AFF" />}
-          />
-        );
-      case "mcq":
-        return (
-          <View style={styles.mcqContainer}>
-            {question.options.map((option: string) => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.mcqOption,
-                  answers[question.id] === option && styles.mcqOptionSelected,
-                ]}
-                onPress={() =>
-                  setAnswers({ ...answers, [question.id]: option })
-                }
-              >
-                <Icon
-                  name={
-                    answers[question.id] === option
-                      ? "checkbox-marked-circle"
-                      : "checkbox-blank-circle-outline"
-                  }
-                  size={24}
-                  color={answers[question.id] === option ? "white" : "#007AFF"}
-                  style={styles.mcqIcon}
-                />
-                <Text
-                  style={[
-                    styles.mcqOptionText,
-                    answers[question.id] === option &&
-                      styles.mcqOptionTextSelected,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        );
-      default:
-        return null;
+  const fetchQuestions = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        "https://restaurant-audit-app-backend-1.onrender.com/api/admin/audit-templates"
+      );
+      setQuestions(
+        response.data[0].sections.map(
+          (section: { question: string }, index: number) => ({
+            id: `question-${index}`,
+            question: section.question,
+            compliance: "",
+            evidenceAndComments: "",
+            image: "",
+          })
+        )
+      );
+    } catch (err) {
+      setError("Failed to fetch questions");
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {formData.questions.map((question, index) => (
-          <Animated.View
-            key={question.id}
-            style={[
-              styles.questionContainer,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  {
-                    translateY: fadeAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [50, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.questionText}>
-              <Icon
-                name="comment-question"
-                size={24}
-                color="#007AFF"
-                style={styles.questionIcon}
-              />
-              {question.question}
-            </Text>
-            {renderQuestion(question)}
-          </Animated.View>
-        ))}
-        <Button
-          title="Submit"
-          onPress={() => handleSubmit(navigation)}
-          containerStyle={styles.submitButton}
-          icon={
-            <Icon
-              name="send"
-              size={24}
-              color="white"
-              style={styles.submitIcon}
-            />
-          }
+  const updateFormData = useCallback((key: keyof AuditFormData, value: any) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const updateQuestion = useCallback(
+    (id: string, key: keyof Question, value: string) => {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === id ? { ...q, [key]: value } : q))
+      );
+    },
+    []
+  );
+
+  const submitForm = async () => {
+    setLoading(true);
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) throw new Error("User not authenticated");
+
+      const formattedData = {
+        userId,
+        ...formData,
+        companyRepresentatives: [
+          formData.companyRepresentatives[0] || "",
+          formData.companyRepresentatives[1] || "",
+        ],
+        auditTeam: [formData.auditTeam[0] || "", formData.auditTeam[1] || ""],
+        dateOfAudit: new Date(formData.dateOfAudit).toISOString(),
+        manpower: {
+          male: parseInt(formData.manpower.male.toString()) || 0,
+          female: parseInt(formData.manpower.female.toString()) || 0,
+        },
+        sections: questions.map((q) => ({
+          question: q.question,
+          compliance: q.compliance || "N/A", // Ensure a valid enum value
+          evidenceAndComments: q.evidenceAndComments || "",
+          image: q.image || "",
+        })),
+      };
+
+      console.log("Submitting data:", JSON.stringify(formattedData, null, 2));
+
+      const response = await axios.post(
+        "https://restaurant-audit-app-backend-1.onrender.com/api/user/audit-form/",
+        formattedData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Server response:", response.data);
+
+      if (response.data && response.data.pdfPath) {
+        return response.data;
+      } else {
+        throw new Error("PDF path not received from server");
+      }
+    } catch (err: any) {
+      console.error("Error submitting form:", err);
+      if (axios.isAxiosError(err)) {
+        const errorMessage = err.response?.data?.message || err.message;
+        throw new Error(`Failed to submit form: ${errorMessage}`);
+      } else {
+        throw new Error(`Unexpected error: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    formData,
+    questions,
+    loading,
+    error,
+    updateFormData,
+    updateQuestion,
+    submitForm,
+  };
+};
+
+export const AuditForm: React.FC = () => {
+  const { theme } = useTheme();
+  const navigation = useNavigation<AuditFormScreenNavigationProp>();
+  const {
+    formData,
+    questions,
+    loading,
+    error,
+    updateFormData,
+    updateQuestion,
+    submitForm,
+  } = useAuditForm();
+
+  const handleSubmit = async () => {
+    try {
+      const result = await submitForm();
+      if (result && result.pdfPath) {
+        navigation.navigate("ThankYou", { pdfPath: result.pdfPath });
+      } else {
+        throw new Error("PDF path not received from server");
+      }
+    } catch (err: any) {
+      console.error("Error submitting form:", err);
+      Alert.alert(
+        "Submission Error",
+        `Failed to submit the form. ${err.message}. Please try again or contact support.`
+      );
+    }
+  };
+
+  const renderQuestion = useCallback(
+    ({ item }: { item: Question }) => (
+      <View style={styles.questionContainer}>
+        <Text style={styles.questionText}>{item.question}</Text>
+        <Input
+          placeholder="Compliance (Y/N/NI/N/A)"
+          value={item.compliance}
+          onChangeText={(value) => {
+            const validValues = ["Y", "N", "NI", "N/A"];
+            updateQuestion(
+              item.id,
+              "compliance",
+              validValues.includes(value) ? value : "N/A"
+            );
+          }}
         />
-      </ScrollView>
-    </SafeAreaView>
+        <Input
+          placeholder="Evidence and Comments"
+          value={item.evidenceAndComments}
+          onChangeText={(value) =>
+            updateQuestion(item.id, "evidenceAndComments", value)
+          }
+          multiline
+        />
+      </View>
+    ),
+    [updateQuestion]
+  );
+
+  if (loading) {
+    return <ActivityIndicator size="large" color={theme.colors.primary} />;
+  }
+
+  if (error) {
+    return <Text style={styles.errorText}>Error: {error}</Text>;
+  }
+
+  return (
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Text h3 style={styles.title}>
+        Audit Form
+      </Text>
+      <FlatList
+        data={[
+          { key: "form-fields" },
+          ...questions.map((q) => ({ ...q, key: q.id })),
+          { key: "submit-button" },
+        ]}
+        renderItem={({ item }) => {
+          if ((item as { key: string }).key === "form-fields") {
+            return (
+              <>
+                <Input
+                  placeholder="Name of Company"
+                  value={formData.nameOfCompany}
+                  onChangeText={(value) =>
+                    updateFormData("nameOfCompany", value)
+                  }
+                />
+                <Input
+                  placeholder="FSSAI License No"
+                  value={formData.fssaiLicenseNo}
+                  onChangeText={(value) =>
+                    updateFormData("fssaiLicenseNo", value)
+                  }
+                />
+                <Input
+                  placeholder="Site Address"
+                  value={formData.siteAddress}
+                  onChangeText={(value) => updateFormData("siteAddress", value)}
+                />
+                <Input
+                  placeholder="State"
+                  value={formData.state}
+                  onChangeText={(value) => updateFormData("state", value)}
+                />
+                <Input
+                  placeholder="Pin Code"
+                  value={formData.pinCode}
+                  onChangeText={(value) => updateFormData("pinCode", value)}
+                />
+                <Input
+                  placeholder="Phone No"
+                  value={formData.phoneNo}
+                  onChangeText={(value) => updateFormData("phoneNo", value)}
+                />
+                <Input
+                  placeholder="Email"
+                  value={formData.email}
+                  onChangeText={(value) => updateFormData("email", value)}
+                />
+                <Input
+                  placeholder="Website"
+                  value={formData.website}
+                  onChangeText={(value) => updateFormData("website", value)}
+                />
+                <Input
+                  placeholder="Audit Type"
+                  value={formData.auditType}
+                  onChangeText={(value) => updateFormData("auditType", value)}
+                />
+                <Input
+                  placeholder="Audit Criteria"
+                  value={formData.auditCriteria}
+                  onChangeText={(value) =>
+                    updateFormData("auditCriteria", value)
+                  }
+                />
+                <Input
+                  placeholder="Type of Audit"
+                  value={formData.typeOfAudit}
+                  onChangeText={(value) => updateFormData("typeOfAudit", value)}
+                />
+                <Input
+                  placeholder="Scope"
+                  value={formData.scope}
+                  onChangeText={(value) => updateFormData("scope", value)}
+                />
+                <Input
+                  placeholder="Male Manpower"
+                  value={formData.manpower.male.toString()}
+                  onChangeText={(value) =>
+                    updateFormData("manpower", {
+                      ...formData.manpower,
+                      male: parseInt(value) || 0,
+                    })
+                  }
+                  keyboardType="numeric"
+                />
+                <Input
+                  placeholder="Female Manpower"
+                  value={formData.manpower.female.toString()}
+                  onChangeText={(value) =>
+                    updateFormData("manpower", {
+                      ...formData.manpower,
+                      female: parseInt(value) || 0,
+                    })
+                  }
+                  keyboardType="numeric"
+                />
+              </>
+            );
+          } else if ((item as { key: string }).key === "submit-button") {
+            return (
+              <Button
+                title="Submit Audit"
+                onPress={handleSubmit}
+                loading={loading}
+                containerStyle={styles.submitButton}
+              />
+            );
+          } else {
+            return renderQuestion({ item: item as Question });
+          }
+        }}
+        keyExtractor={(item) => item.key}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  scrollContainer: {
     padding: 16,
+  },
+  title: {
+    marginBottom: 20,
+    textAlign: "center",
   },
   questionContainer: {
     marginBottom: 20,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 16,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   questionText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-    color: "#333",
-  },
-  questionIcon: {
-    marginRight: 8,
-  },
-  mcqContainer: {
-    flexDirection: "column",
-  },
-  mcqOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-  },
-  mcqOptionSelected: {
-    backgroundColor: "#007AFF",
-  },
-  mcqIcon: {
-    marginRight: 12,
-  },
-  mcqOptionText: {
     fontSize: 16,
-    color: "#007AFF",
-  },
-  mcqOptionTextSelected: {
-    color: "white",
+    fontWeight: "bold",
+    marginBottom: 8,
   },
   submitButton: {
     marginTop: 20,
-    borderRadius: 12,
+    marginBottom: 40,
   },
-  submitIcon: {
-    marginRight: 8,
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginTop: 20,
   },
 });
-
-export default FormScreen;

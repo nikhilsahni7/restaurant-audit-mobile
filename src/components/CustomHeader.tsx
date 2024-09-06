@@ -1,10 +1,10 @@
-// src/components/CustomHeader.tsx
 import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Header, Text } from "@rneui/themed";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
+import { logout } from "../utils/api";
 
 const CustomHeader = ({ scene, previous }: any) => {
   const { theme } = useTheme();
@@ -14,7 +14,31 @@ const CustomHeader = ({ scene, previous }: any) => {
     scene?.descriptor?.options?.headerTitle ??
     scene?.descriptor?.options?.title ??
     scene?.route?.name ??
-    "Restaurant Audit App";
+    "Restaurant Audit";
+
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "OK",
+        onPress: async () => {
+          try {
+            await logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Auth" as never }],
+            });
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Error", "Failed to logout. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <Header
@@ -35,7 +59,7 @@ const CustomHeader = ({ scene, previous }: any) => {
         </View>
       }
       rightComponent={
-        <TouchableOpacity onPress={() => navigation.navigate("Auth" as never)}>
+        <TouchableOpacity onPress={handleLogout}>
           <Icon name="logout" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       }

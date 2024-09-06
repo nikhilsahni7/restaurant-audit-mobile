@@ -1,4 +1,3 @@
-// src/screens/AuthScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -7,10 +6,12 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { Button, Input, Text, useTheme } from "@rneui/themed";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { register, login } from "../utils/api";
 
 type AuthScreenProps = {
   navigation: StackNavigationProp<any, "Auth">;
@@ -23,10 +24,25 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    // backend logic later
-    navigation.replace("Main");
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await register({ name, email, phoneNumber: phone, password });
+      } else {
+        await login({ email, password });
+      }
+      navigation.replace("Main");
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "An error occurred"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,6 +98,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ navigation }) => {
         <Button
           title={isSignUp ? "Sign Up" : "Sign In"}
           onPress={handleSubmit}
+          loading={loading}
+          disabled={loading}
           containerStyle={styles.buttonContainer}
           buttonStyle={{ backgroundColor: theme.colors.primary }}
         />
