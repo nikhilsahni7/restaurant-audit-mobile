@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
   ActivityIndicator,
   FlatList,
   Alert,
+  TouchableOpacity,
+  Image,
 } from "react-native";
-import { Input, Button, Text, useTheme } from "@rneui/themed";
+import { Input, Button, Text, useTheme, CheckBox } from "@rneui/themed";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
 
 type AuditFormScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -43,11 +46,14 @@ interface AuditFormData {
 interface Question {
   id: string;
   question: string;
-  compliance: "Y" | "N" | "NI" | "N/A";
+  compliance: "Y" | "N" | "NI" | "N/A" | "";
   evidenceAndComments: string;
   image: string;
   key?: string;
+  isExpanded?: boolean;
 }
+
+const API_BASE_URL = "https://restaurant-audit-app-backend-1.onrender.com/api";
 
 const useAuditForm = () => {
   const [formData, setFormData] = useState<AuditFormData>({
@@ -82,9 +88,7 @@ const useAuditForm = () => {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        "https://restaurant-audit-app-backend-1.onrender.com/api/admin/audit-templates"
-      );
+      const response = await axios.get(`${API_BASE_URL}/admin/audit-templates`);
       setQuestions(
         response.data[0].sections.map(
           (section: { question: string }, index: number) => ({
@@ -93,6 +97,7 @@ const useAuditForm = () => {
             compliance: "",
             evidenceAndComments: "",
             image: "",
+            isExpanded: false,
           })
         )
       );
@@ -108,13 +113,29 @@ const useAuditForm = () => {
   }, []);
 
   const updateQuestion = useCallback(
-    (id: string, key: keyof Question, value: string) => {
+    (id: string, key: keyof Question, value: any) => {
       setQuestions((prev) =>
         prev.map((q) => (q.id === id ? { ...q, [key]: value } : q))
       );
     },
     []
   );
+
+  const convertImageToBase64 = async (uri: string): Promise<string> => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error converting image to base64:", error);
+      return "";
+    }
+  };
 
   const submitForm = async () => {
     setLoading(true);
@@ -124,29 +145,39 @@ const useAuditForm = () => {
 
       const formattedData = {
         userId,
-        ...formData,
-        companyRepresentatives: [
-          formData.companyRepresentatives[0] || "",
-          formData.companyRepresentatives[1] || "",
-        ],
-        auditTeam: [formData.auditTeam[0] || "", formData.auditTeam[1] || ""],
+        nameOfCompany: formData.nameOfCompany,
+        fssaiLicenseNo: formData.fssaiLicenseNo,
+        companyRepresentatives: formData.companyRepresentatives.filter(Boolean),
+        siteAddress: formData.siteAddress,
+        state: formData.state,
+        pinCode: formData.pinCode,
+        phoneNo: formData.phoneNo,
+        email: formData.email,
+        website: formData.website,
+        auditTeam: formData.auditTeam.filter(Boolean),
         dateOfAudit: new Date(formData.dateOfAudit).toISOString(),
+        auditType: formData.auditType,
+        auditCriteria: formData.auditCriteria,
+        typeOfAudit: formData.typeOfAudit,
+        scope: formData.scope,
         manpower: {
           male: parseInt(formData.manpower.male.toString()) || 0,
           female: parseInt(formData.manpower.female.toString()) || 0,
         },
-        sections: questions.map((q) => ({
-          question: q.question,
-          compliance: q.compliance || "N/A", // Ensure a valid enum value
-          evidenceAndComments: q.evidenceAndComments || "",
-          image: q.image || "",
-        })),
+        sections: await Promise.all(
+          questions.map(async (q) => ({
+            question: q.question,
+            compliance: q.compliance || "N/A",
+            evidenceAndComments: q.evidenceAndComments || "",
+            image: q.image ? await convertImageToBase64(q.image) : "",
+          }))
+        ),
       };
 
       console.log("Submitting data:", JSON.stringify(formattedData, null, 2));
 
       const response = await axios.post(
-        "https://restaurant-audit-app-backend-1.onrender.com/api/user/audit-form/",
+        `${API_BASE_URL}/user/audit-form`,
         formattedData,
         {
           headers: {
@@ -164,12 +195,7 @@ const useAuditForm = () => {
       }
     } catch (err: any) {
       console.error("Error submitting form:", err);
-      if (axios.isAxiosError(err)) {
-        const errorMessage = err.response?.data?.message || err.message;
-        throw new Error(`Failed to submit form: ${errorMessage}`);
-      } else {
-        throw new Error(`Unexpected error: ${err.message}`);
-      }
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -201,49 +227,104 @@ export const AuditForm: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      console.log("Submitting form...");
       const result = await submitForm();
       if (result && result.pdfPath) {
+        console.log(
+          "Form submitted successfully. Navigating to ThankYou screen."
+        );
         navigation.navigate("ThankYou", { pdfPath: result.pdfPath });
       } else {
+        console.error("PDF path not received from server");
         throw new Error("PDF path not received from server");
       }
     } catch (err: any) {
-      console.error("Error submitting form:", err);
+      console.error("Error in handleSubmit:", err);
       Alert.alert(
         "Submission Error",
-        `Failed to submit the form. ${err.message}. Please try again or contact support.`
+        `Failed to submit the form. Error details: ${err.message}. Please check the console for more information and try again or contact support.`
       );
     }
   };
 
+  const complianceOptions = ["Y", "N", "NI", "N/A"];
+
+  const toggleQuestion = useCallback(
+    (id: string) => {
+      updateQuestion(id, "isExpanded", (prev: boolean) => !prev);
+    },
+    [updateQuestion]
+  );
+
+  const handleImagePick = useCallback(
+    async (id: string) => {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission to access camera roll is required!");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0].uri) {
+        updateQuestion(id, "image", result.assets[0].uri);
+      }
+    },
+    [updateQuestion]
+  );
+
   const renderQuestion = useCallback(
     ({ item }: { item: Question }) => (
       <View style={styles.questionContainer}>
-        <Text style={styles.questionText}>{item.question}</Text>
-        <Input
-          placeholder="Compliance (Y/N/NI/N/A)"
-          value={item.compliance}
-          onChangeText={(value) => {
-            const validValues = ["Y", "N", "NI", "N/A"];
-            updateQuestion(
-              item.id,
-              "compliance",
-              validValues.includes(value) ? value : "N/A"
-            );
-          }}
-        />
-        <Input
-          placeholder="Evidence and Comments"
-          value={item.evidenceAndComments}
-          onChangeText={(value) =>
-            updateQuestion(item.id, "evidenceAndComments", value)
-          }
-          multiline
-        />
+        <TouchableOpacity onPress={() => toggleQuestion(item.id)}>
+          <Text style={styles.questionText}>{item.question}</Text>
+        </TouchableOpacity>
+        {item.isExpanded && (
+          <>
+            <Text style={styles.complianceLabel}>Compliance:</Text>
+            <View style={styles.radioButtonContainer}>
+              {complianceOptions.map((option) => (
+                <CheckBox
+                  key={option}
+                  title={option}
+                  checked={item.compliance === option}
+                  onPress={() => updateQuestion(item.id, "compliance", option)}
+                  containerStyle={styles.radioButton}
+                />
+              ))}
+            </View>
+            <Input
+              placeholder="Evidence and Comments"
+              value={item.evidenceAndComments}
+              onChangeText={(value) =>
+                updateQuestion(item.id, "evidenceAndComments", value)
+              }
+              multiline
+            />
+            <Button
+              title="Add Image"
+              onPress={() => handleImagePick(item.id)}
+              type="outline"
+              containerStyle={styles.imageButton}
+            />
+            {item.image && (
+              <Image source={{ uri: item.image }} style={styles.image} />
+            )}
+          </>
+        )}
       </View>
     ),
-    [updateQuestion]
+    [updateQuestion, toggleQuestion, handleImagePick]
   );
+
+  const memoizedQuestions = useMemo(() => questions, [questions]);
 
   if (loading) {
     return <ActivityIndicator size="large" color={theme.colors.primary} />;
@@ -263,7 +344,7 @@ export const AuditForm: React.FC = () => {
       <FlatList
         data={[
           { key: "form-fields" },
-          ...questions.map((q) => ({ ...q, key: q.id })),
+          ...memoizedQuestions,
           { key: "submit-button" },
         ]}
         renderItem={({ item }) => {
@@ -282,6 +363,26 @@ export const AuditForm: React.FC = () => {
                   value={formData.fssaiLicenseNo}
                   onChangeText={(value) =>
                     updateFormData("fssaiLicenseNo", value)
+                  }
+                />
+                <Input
+                  placeholder="Company Representative 1"
+                  value={formData.companyRepresentatives[0]}
+                  onChangeText={(value) =>
+                    updateFormData("companyRepresentatives", [
+                      value,
+                      formData.companyRepresentatives[1],
+                    ])
+                  }
+                />
+                <Input
+                  placeholder="Company Representative 2"
+                  value={formData.companyRepresentatives[1]}
+                  onChangeText={(value) =>
+                    updateFormData("companyRepresentatives", [
+                      formData.companyRepresentatives[0],
+                      value,
+                    ])
                   }
                 />
                 <Input
@@ -313,6 +414,20 @@ export const AuditForm: React.FC = () => {
                   placeholder="Website"
                   value={formData.website}
                   onChangeText={(value) => updateFormData("website", value)}
+                />
+                <Input
+                  placeholder="Audit Team Member 1"
+                  value={formData.auditTeam[0]}
+                  onChangeText={(value) =>
+                    updateFormData("auditTeam", [value, formData.auditTeam[1]])
+                  }
+                />
+                <Input
+                  placeholder="Audit Team Member 2"
+                  value={formData.auditTeam[1]}
+                  onChangeText={(value) =>
+                    updateFormData("auditTeam", [formData.auditTeam[0], value])
+                  }
                 />
                 <Input
                   placeholder="Audit Type"
@@ -373,7 +488,14 @@ export const AuditForm: React.FC = () => {
             return renderQuestion({ item: item as Question });
           }
         }}
-        keyExtractor={(item) => item.key}
+        keyExtractor={(item) =>
+          (item as { key?: string }).key || (item as Question).id
+        }
+        initialNumToRender={10}
+        maxToRenderPerBatch={20}
+        windowSize={21}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={100}
       />
     </View>
   );
@@ -390,11 +512,29 @@ const styles = StyleSheet.create({
   },
   questionContainer: {
     marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    paddingBottom: 10,
   },
   questionText: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
+  },
+  complianceLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  radioButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  radioButton: {
+    padding: 0,
+    margin: 0,
+    backgroundColor: "transparent",
+    borderWidth: 0,
   },
   submitButton: {
     marginTop: 20,
@@ -405,4 +545,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
+  imageButton: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  image: {
+    width: "100%",
+    height: 200,
+    resizeMode: "contain",
+    marginBottom: 10,
+  },
 });
+
+export default AuditForm;

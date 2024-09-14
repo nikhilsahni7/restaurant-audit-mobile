@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { Button, Text, useTheme } from "@rneui/themed";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
@@ -33,18 +33,27 @@ const ThankYouScreen: React.FC<ThankYouScreenProps> = ({
     try {
       const fileName = pdfPath.split("/").pop() || "audit_report.pdf";
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
       const downloadResult = await FileSystem.downloadAsync(pdfPath, fileUri);
+
       if (downloadResult.status === 200) {
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(fileUri);
         } else {
-          console.log("Sharing is not available on this platform");
+          Alert.alert(
+            "Sharing Unavailable",
+            "Sharing is not available on this device."
+          );
         }
       } else {
-        console.error("Failed to download PDF");
+        throw new Error("Failed to download PDF");
       }
     } catch (error) {
-      console.error("Error downloading PDF:", error);
+      console.error("Error downloading or sharing PDF:", error);
+      Alert.alert(
+        "Download Error",
+        "An error occurred while downloading or sharing the PDF. Please try again."
+      );
     } finally {
       setDownloading(false);
     }
