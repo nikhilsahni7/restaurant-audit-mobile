@@ -255,23 +255,35 @@ export const AuditForm: React.FC = () => {
     },
     [updateQuestion]
   );
-
   const handleImagePick = useCallback(
-    async (id: string) => {
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    async (id: string, source: "library" | "camera") => {
+      let permissionResult;
+      if (source === "camera") {
+        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      } else {
+        permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
 
       if (permissionResult.granted === false) {
-        Alert.alert("Permission to access camera roll is required!");
+        Alert.alert(`Permission to access ${source} is required!`);
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
+      const result =
+        source === "camera"
+          ? await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [4, 3],
+              quality: 1,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [4, 3],
+              quality: 1,
+            });
 
       if (!result.canceled && result.assets && result.assets[0].uri) {
         updateQuestion(id, "image", result.assets[0].uri);
@@ -308,12 +320,20 @@ export const AuditForm: React.FC = () => {
               }
               multiline
             />
-            <Button
-              title="Add Image"
-              onPress={() => handleImagePick(item.id)}
-              type="outline"
-              containerStyle={styles.imageButton}
-            />
+            <View style={styles.imageButtonsContainer}>
+              <Button
+                title="Choose from Gallery"
+                onPress={() => handleImagePick(item.id, "library")}
+                type="outline"
+                containerStyle={styles.imageButton}
+              />
+              <Button
+                title="Take Photo"
+                onPress={() => handleImagePick(item.id, "camera")}
+                type="outline"
+                containerStyle={styles.imageButton}
+              />
+            </View>
             {item.image && (
               <Image source={{ uri: item.image }} style={styles.image} />
             )}
@@ -553,6 +573,12 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
     resizeMode: "contain",
+    marginBottom: 10,
+  },
+  imageButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
     marginBottom: 10,
   },
 });

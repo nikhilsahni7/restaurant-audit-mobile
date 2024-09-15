@@ -1,78 +1,97 @@
-import React from "react";
-import { View, StyleSheet, FlatList } from "react-native";
-import { ListItem, Text, useTheme } from "@rneui/themed";
+import React, { useState, useCallback } from "react";
+import { View, FlatList, StyleSheet, Alert } from "react-native";
+import { Text, ListItem, Button } from "@rneui/themed";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import api, { getUserId } from "../utils/api";
 
-type HistoryScreenNavigationProp = StackNavigationProp<
+type AuditHistoryScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
-  "Main"
+  "AuditHistory"
 >;
 
-type HistoryScreenProps = {
-  navigation: HistoryScreenNavigationProp;
-};
+interface AuditForm {
+  _id: string;
+  userId: string;
+  restaurantName: string;
+  nameOfCompany: string;
+  dateOfAudit: string;
+  siteAddress: string;
+}
 
-const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
-  const { theme } = useTheme();
+const AuditHistoryScreen: React.FC = () => {
+  const [auditForms, setAuditForms] = useState<AuditForm[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation<AuditHistoryScreenNavigationProp>();
 
-  const historyData = [
-    {
-      id: "1",
-      restaurantName: "Restaurant A",
-      date: "2024-08-15",
-      version: 1,
-    },
-    { id: "2", restaurantName: "Restaurant B", date: "2024-08-14", version: 2 },
-    { id: "3", restaurantName: "Restaurant C", date: "2024-08-13", version: 1 },
-    {
-      id: "4",
-      restaurantName: "Restaurant D",
-      date: "2024-08-12",
-      version: 3,
-    },
-    {
-      id: "5",
-      restaurantName: "Restaurant E",
-      date: "2024-08-11",
-      version: 1,
-    },
-  ];
+  const fetchAuditForms = useCallback(async () => {
+    try {
+      setLoading(true);
+      const userId = await getUserId();
+      if (!userId) {
+        Alert.alert("Error", "User not authenticated");
+        return;
+      }
+      const response = await api.get(`/user/user-audit-forms/${userId}`);
+      if (response.data && response.data.templates) {
+        setAuditForms(response.data.templates);
+      } else {
+        setAuditForms([]);
+      }
+    } catch (error) {
+      console.error("Error fetching audit forms:", error);
+      Alert.alert("Error", "Failed to fetch audit forms");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const renderHistoryItem = ({ item }: { item: (typeof historyData)[0] }) => (
-    <ListItem
-      bottomDivider
-      onPress={() => navigation.navigate("Form", { restaurantId: item.id })}
-      containerStyle={styles.listItemContainer}
-    >
-      <Icon name="store" size={24} color={theme.colors.primary} />
+  useFocusEffect(
+    useCallback(() => {
+      fetchAuditForms();
+    }, [fetchAuditForms])
+  );
+
+  const handleEditAudit = (formId: string) => {
+    navigation.navigate("EditAuditForm", { formId });
+  };
+
+  const renderAuditItem = ({ item }: { item: AuditForm }) => (
+    <ListItem bottomDivider>
       <ListItem.Content>
-        <ListItem.Title style={{ color: theme.colors.secondary }}>
-          {item.restaurantName}
-        </ListItem.Title>
-        <ListItem.Subtitle style={{ color: theme.colors.grey3 }}>
-          Date: {item.date}
+        <ListItem.Title>CompanyName: {item.nameOfCompany}</ListItem.Title>
+
+        <ListItem.Subtitle>ID: {item._id}</ListItem.Subtitle>
+        <ListItem.Subtitle>SiteAddress: {item.siteAddress}</ListItem.Subtitle>
+        <ListItem.Subtitle>
+          Date: {new Date(item.dateOfAudit).toLocaleDateString()}
         </ListItem.Subtitle>
       </ListItem.Content>
-      <Text style={{ color: theme.colors.grey3 }}>Version {item.version}</Text>
-      <ListItem.Chevron color={theme.colors.primary} />
+      <Button
+        title="Edit"
+        onPress={() => handleEditAudit(item._id)}
+        type="clear"
+      />
     </ListItem>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={styles.container}>
       <FlatList
-        data={historyData}
-        renderItem={renderHistoryItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        data={auditForms}
+        renderItem={renderAuditItem}
+        keyExtractor={(item) => item._id}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: theme.colors.grey3 }]}>
-            No history available
-          </Text>
+          <Text style={styles.emptyText}>No audit forms found</Text>
         }
       />
     </View>
@@ -82,19 +101,17 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 10,
   },
-  listContainer: {
-    padding: 16,
-  },
-  listItemContainer: {
-    borderRadius: 8,
-    marginBottom: 8,
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyText: {
     textAlign: "center",
     marginTop: 50,
-    fontSize: 18,
   },
 });
 
-export default HistoryScreen;
+export default AuditHistoryScreen;

@@ -10,12 +10,15 @@ import ThankYouScreen from "../screens/ThankYouScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import HistoryScreen from "../screens/HistoryScreen";
 import CustomHeader from "../components/CustomHeader";
+import EditAuditFormScreen from "../screens/EditFormScreen";
 
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   AuditForm: undefined; // Changed from Form to AuditForm
-  ThankYou: { pdfPath: string }; // Add pdfPath parameter
+  ThankYou: { pdfPath: string }; // Add pdfPath parameter\
+  AuditHistory: undefined;
+  EditAuditForm: { formId: string };
 };
 
 export type MainTabParamList = {
@@ -113,6 +116,15 @@ const AppNavigator: React.FC = () => (
       options={{
         header: (props) => (
           <CustomHeader {...props} title="Thank You" showBackButton />
+        ),
+      }}
+    />
+    <Stack.Screen
+      name="EditAuditForm"
+      component={EditAuditFormScreen}
+      options={{
+        header: (props) => (
+          <CustomHeader {...props} title="Edit Audit Form" showBackButton />
         ),
       }}
     />
